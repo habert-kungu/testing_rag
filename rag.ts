@@ -1,16 +1,12 @@
-import { MongoClient, Collection } from "mongodb";
+import { MongoClient } from "mongodb";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
-import { GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { RunnableSequence } from "@langchain/core/runnables";
-import { formatDocumentsAsString } from "langchain/util/document";
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import * as fs from "fs";
 import * as dotenv from 'dotenv';
-import * as readline from 'readline';
-
 dotenv.config();
 
+// Add a basic config structure
 const config = {
   mongodb: {
     uri: process.env.MONGODB_URI || "mongodb://localhost:27017",
@@ -23,13 +19,16 @@ const config = {
   vectorStore: {
     indexName: "default",
   },
-  ingestion: {
-      filePath: "/home/habert/test/data.json",
-  }
 };
 
-async function ingestDocument(collection: Collection, filePath: string) {
-    console.log("Starting ingestion from", filePath);
+export async function ingestDocument(filePath: string) {
+  const client = new MongoClient(config.mongodb.uri);
+  await client.connect();
+  try {
+    const collection = client
+      .db(config.mongodb.dbName)
+      .collection(config.mongodb.collectionName);
+
     const embeddings = new GoogleGenerativeAIEmbeddings({
       apiKey: config.llm.apiKey,
     });
@@ -67,87 +66,16 @@ async function ingestDocument(collection: Collection, filePath: string) {
 
     const flattenedDocs = docs.flat();
     await vectorstore.addDocuments(flattenedDocs);
-    console.log("Ingestion complete.");
-}
-
-async function answerQuestion(collection: Collection, question: string) {
-    const embeddings = new GoogleGenerativeAIEmbeddings({
-      apiKey: config.llm.apiKey,
-    });
-
-    const vectorStore = new MongoDBAtlasVectorSearch(embeddings, {
-      collection,
-      indexName: config.vectorStore.indexName,
-    });
-
-    const retriever = vectorStore.asRetriever();
-
-    const prompt = ChatPromptTemplate.fromTemplate(`
-      Answer the following question based only on the provided context:
-      <context>
-      {context}
-      </context>
-      Question: {question}
-    `);
-
-    const model = new ChatGoogleGenerativeAI({
-        apiKey: config.llm.apiKey,
-        modelName: "gemini-pro",
-        temperature: 0.3,
-    });
-
-    const chain = RunnableSequence.from([
-      {
-        context: retriever.pipe(formatDocumentsAsString),
-        question: (input) => input.question,
-      },
-      prompt,
-      model,
-    ]);
-
-    const result = await chain.invoke({
-        question,
-    });
-
-    const answer = result.content;
-    console.log("Answer:", answer);
-}
-
-async function main() {
-  const client = new MongoClient(config.mongodb.uri);
-  await client.connect();
-  try {
-    const collection = client.db(config.mongodb.dbName).collection(config.mongodb.collectionName);
-
-    const docCount = await collection.countDocuments();
-    if (docCount === 0) {
-        console.log("No documents found in the collection. Starting ingestion.");
-        await ingestDocument(collection, config.ingestion.filePath);
-    } else {
-        console.log("Found existing documents in the collection. Skipping ingestion.");
-    }
-
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-        prompt: 'Ask a question> '
-    });
-
-    console.log('You can now ask questions. Type "exit" to quit.');
-    rl.prompt();
-
-    for await (const line of rl) {
-        if (line.toLowerCase() === 'exit') {
-            break;
-        }
-        await answerQuestion(collection, line);
-        rl.prompt();
-    }
-
+    console.log("Ingestion complete");
   } finally {
-    await client.close();
-    console.log("Connection closed.");
+      await client.close();
   }
 }
 
-main().catch(console.error);
+ingestDocument("/home/habert/test/data.json")
+  .then(() => {
+    console.log("Ingestion script finished.");
+  })
+  .catch((err) => {
+    console.error("Ingestion script failed", err);
+  });
