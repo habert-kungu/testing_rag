@@ -1,6 +1,6 @@
 # RAG Tool
 
-This is a command-line tool for performing Retrieval-Augmented Generation (RAG) on your documents. You can ingest PDF documents into a MongoDB vector store and then ask questions to get answers based on the content of those documents.
+This is a command-line tool for performing Retrieval-Augmented Generation (RAG) on your documents. You can ingest JSON documents into a MongoDB vector store and then ask questions to get answers based on the content of those documents.
 
 ## Prerequisites
 
@@ -35,10 +35,10 @@ This is a command-line tool for performing Retrieval-Augmented Generation (RAG) 
     To run a command, you can use `docker run`. Make sure to pass the `.env` file to the container.
 
     **Ingest a document:**
-    Place your PDF in a local directory (e.g., `./data`) and mount it to the container.
+    Place your JSON file in a local directory (e.g., `./data`) and mount it to the container.
 
     ```bash
-    docker run --rm -v $(pwd)/data:/usr/src/app/data --env-file .env rag-tool ingest ./data/your_document.pdf
+    docker run --rm -v $(pwd)/data:/usr/src/app/data --env-file .env rag-tool ingest ./data/your_document.json
     ```
 
     **Query your documents:**
@@ -58,7 +58,7 @@ This is a command-line tool for performing Retrieval-Augmented Generation (RAG) 
 
     **Ingest a document:**
     ```bash
-    npx ts-node src/index.ts ingest src/sample_files/mongodb.pdf
+    npx ts-node src/index.ts ingest src/sample_files/data.json
     ```
 
     **Query your documents:**

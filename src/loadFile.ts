@@ -1,7 +1,8 @@
 import { MongoClient } from "mongodb";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+
+import { JSONLoader } from "@langchain/community/document_loaders/fs/json";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { config } from "./config";
 
@@ -12,7 +13,8 @@ export async function ingestDocument(filePath: string) {
     .db(config.mongodb.dbName)
     .collection(config.mongodb.collectionName);
 
-  const loader = new PDFLoader(filePath);
+    const loader = new JSONLoader(filePath);
+
   const pages = await loader.load();
 
   const textSplitter = new RecursiveCharacterTextSplitter({
