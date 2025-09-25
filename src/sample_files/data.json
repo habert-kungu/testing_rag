@@ -1,4 +1,4 @@
-[
+
   {"id":"faq_001","question":"How do I reset my HR portal password?","answer":"Use the 'Forgot Password' link on the login page. You’ll receive a reset email to your registered address. If SSO is enabled, reset via your IdP (e.g., Microsoft 365).","tags":["account","security","login"],"updated_at":"2025-08-01"},
   {"id":"faq_002","question":"When do salaries get processed?","answer":"Payroll is processed on the 25th of each month and disbursed within 2 banking days. Cutoff for changes is the 20th 17:00 local time.","tags":["payroll","deadlines"],"updated_at":"2025-08-01"},
   {"id":"faq_003","question":"How is leave balance calculated for new joiners?","answer":"Leave accrues pro-rata from the official joining date and appears after the first month-end cycle. Manual edits can desync balances and should be avoided unless approved.","tags":["leave","onboarding","policy"],"updated_at":"2025-08-01"},
@@ -19,4 +19,4 @@
   {"id":"faq_018","question":"What is the process for exiting employees?","answer":"Exiting employees must complete the Exit Checklist in the HR portal. This includes returning company assets, completing knowledge transfer, and exit interviews.","tags":["exit","offboarding"],"updated_at":"2025-08-01"},
   {"id":"faq_019","question":"How is my data kept secure in the HR system?","answer":"Data is encrypted at rest and in transit using industry-standard protocols. Regular security audits and compliance checks are conducted to ensure data integrity.","tags":["security","data protection"],"updated_at":"2025-08-01"},
   {"id":"faq_020","question":"Who do I contact for urgent HR issues outside business hours?","answer":"For urgent matters, contact the HR emergency line provided in your onboarding materials or email hr-support@example.com.","tags":["hr","emergency","support"],"updated_at":"2025-08-01"}
-]
+
