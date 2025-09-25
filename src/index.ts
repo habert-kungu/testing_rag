@@ -11,22 +11,28 @@ async function main() {
 
   const command = args[0];
 
+  let vectorStore: any; // Declare vectorStore here
+
   if (command === "ingest") {
     if (args.length < 2) {
       console.log("Please provide the path to the document to ingest.");
       return;
     }
     const filePath = args[1];
-    await ingestDocument(filePath);
+    vectorStore = await ingestDocument(filePath);
   } else if (command === "query") {
     if (args.length < 2) {
       console.log("Please provide a query.");
       return;
     }
     const query = args.slice(1).join(" ");
-    const result = await queryData(query);
+    // Automatically ingest the default data.json for in-memory usage
+    console.log("Ingesting data.json for query...");
+    vectorStore = await ingestDocument("src/sample_files/data.json");
+    const result = await queryData(query, vectorStore);
     console.log("Answer:");
     console.log(result);
+    process.exit(0);
   } else {
     console.log(`Unknown command: ${command}`);
   }

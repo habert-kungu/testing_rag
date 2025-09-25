@@ -1,19 +1,12 @@
-import { MongoClient } from "mongodb";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
+import { MemoryVectorStore } from "langchain/vectorstores/memory";
 
-import { JSONLoader } from "@langchain/community/document_loaders/fs/json";
+import { JSONLoader } from "langchain/document_loaders/fs/json";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { config } from "./config";
 
 export async function ingestDocument(filePath: string) {
-  const client = new MongoClient(config.mongodb.uri);
-  await client.connect();
-  const collection = client
-    .db(config.mongodb.dbName)
-    .collection(config.mongodb.collectionName);
-
-    const loader = new JSONLoader(filePath);
+  const loader = new JSONLoader(filePath);
 
   const pages = await loader.load();
 
@@ -28,13 +21,11 @@ export async function ingestDocument(filePath: string) {
     apiKey: config.llm.apiKey,
   });
 
-  const vectorStore = new MongoDBAtlasVectorSearch(embeddings, {
-    collection: collection,
-    indexName: config.vectorStore.indexName,
-  });
+  const vectorStore = await MemoryVectorStore.fromDocuments(
+    splitDocs,
+    embeddings
+  );
 
-  await vectorStore.addDocuments(splitDocs);
-
-  await client.close();
   console.log(`Successfully ingested ${filePath}`);
+  return vectorStore;
 }

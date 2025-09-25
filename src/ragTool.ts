@@ -1,5 +1,3 @@
-import { MongoClient } from "mongodb";
-import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
 import {
   ChatGoogleGenerativeAI,
   GoogleGenerativeAIEmbeddings,
@@ -9,23 +7,9 @@ import { Document } from "langchain/document";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
+import { MemoryVectorStore } from "langchain/vectorstores/memory";
 
-export async function queryData(query: string) {
-  const client = new MongoClient(config.mongodb.uri);
-  await client.connect();
-
-  const collection = client
-    .db(config.mongodb.dbName)
-    .collection(config.mongodb.collectionName);
-
-  const vectorStore = new MongoDBAtlasVectorSearch(
-    new GoogleGenerativeAIEmbeddings({ apiKey: config.llm.apiKey }),
-    {
-      collection: collection,
-      indexName: config.vectorStore.indexName,
-    },
-  );
-
+export async function queryData(query: string, vectorStore: MemoryVectorStore) {
   const retriever = vectorStore.asRetriever({
     k: 5,
   });
@@ -34,6 +18,7 @@ export async function queryData(query: string) {
     apiKey: config.llm.apiKey,
     temperature: 0,
     model: config.llm.model,
+    maxRetries: 3,
   });
 
   const prompt = PromptTemplate.fromTemplate(
@@ -45,7 +30,7 @@ export async function queryData(query: string) {
     Context:
     {context}
     Question: {question}
-    """`,
+    """`
   );
 
   const formatDocs = (docs: Document[]) => {
@@ -62,9 +47,18 @@ export async function queryData(query: string) {
     new StringOutputParser(),
   ]);
 
-  const result = await chain.invoke(query);
-
-  await client.close();
-  return result;
+  try {
+    console.log("Invoking chain with query...");
+    const result = await Promise.race([
+      chain.invoke(query),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout")), 30000)
+      ), // 30 seconds timeout
+    ]);
+    console.log("Chain invocation complete.");
+    return result;
+  } catch (error) {
+    console.error("Error during query execution:", error);
+    throw error;
+  }
 }
-

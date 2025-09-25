@@ -1,12 +1,11 @@
 # RAG Tool
 
-This is a command-line tool for performing Retrieval-Augmented Generation (RAG) on your documents. You can ingest JSON documents into a MongoDB vector store and then ask questions to get answers based on the content of those documents.
+This is a command-line tool for performing Retrieval-Augmented Generation (RAG) on your documents. You can ingest JSON documents into an in-memory vector store and then ask questions to get answers based on the content of those documents.
 
 ## Prerequisites
 
 - Docker
 - Node.js (for local development)
-- A MongoDB Atlas cluster
 - A Gemini API key
 
 ## Setup
@@ -20,7 +19,6 @@ This is a command-line tool for performing Retrieval-Augmented Generation (RAG) 
 2.  **Create a `.env` file:**
     Create a `.env` file in the root of the project and add your MongoDB URI and Gemini API key:
     ```
-    MONGODB_URI=your_mongodb_uri
     GEMINI_API_KEY=your_gemini_api_key
     ```
 
