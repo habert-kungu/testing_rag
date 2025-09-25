@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, Collection } from "mongodb";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
 import { GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI } from "@langchain/google-genai";
@@ -7,6 +7,7 @@ import { RunnableSequence } from "@langchain/core/runnables";
 import { formatDocumentsAsString } from "langchain/util/document";
 import * as fs from "fs";
 import * as dotenv from 'dotenv';
+import * as readline from 'readline';
 
 dotenv.config();
 
@@ -22,16 +23,13 @@ const config = {
   vectorStore: {
     indexName: "default",
   },
+  ingestion: {
+      filePath: "/home/habert/test/data.json",
+  }
 };
 
-export async function ingestDocument(filePath: string) {
-  const client = new MongoClient(config.mongodb.uri);
-  await client.connect();
-  try {
-    const collection = client
-      .db(config.mongodb.dbName)
-      .collection(config.mongodb.collectionName);
-
+async function ingestDocument(collection: Collection, filePath: string) {
+    console.log("Starting ingestion from", filePath);
     const embeddings = new GoogleGenerativeAIEmbeddings({
       apiKey: config.llm.apiKey,
     });
@@ -69,18 +67,10 @@ export async function ingestDocument(filePath: string) {
 
     const flattenedDocs = docs.flat();
     await vectorstore.addDocuments(flattenedDocs);
-    console.log("Ingestion complete");
-  } finally {
-    await client.close();
-  }
+    console.log("Ingestion complete.");
 }
 
-async function answerQuestion(question: string) {
-  const client = new MongoClient(config.mongodb.uri);
-  await client.connect();
-  try {
-    const collection = client.db(config.mongodb.dbName).collection(config.mongodb.collectionName);
-
+async function answerQuestion(collection: Collection, question: string) {
     const embeddings = new GoogleGenerativeAIEmbeddings({
       apiKey: config.llm.apiKey,
     });
@@ -119,38 +109,44 @@ async function answerQuestion(question: string) {
         question,
     });
 
-    // The result from ChatGoogleGenerativeAI is a message object. We need to access the content.
-    // The exact structure might vary, so let's check for common content properties.
     const answer = result.content;
-
     console.log("Answer:", answer);
+}
+
+async function main() {
+  const client = new MongoClient(config.mongodb.uri);
+  await client.connect();
+  try {
+    const collection = client.db(config.mongodb.dbName).collection(config.mongodb.collectionName);
+
+    const docCount = await collection.countDocuments();
+    if (docCount === 0) {
+        console.log("No documents found in the collection. Starting ingestion.");
+        await ingestDocument(collection, config.ingestion.filePath);
+    } else {
+        console.log("Found existing documents in the collection. Skipping ingestion.");
+    }
+
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        prompt: 'Ask a question> '
+    });
+
+    console.log('You can now ask questions. Type "exit" to quit.');
+    rl.prompt();
+
+    for await (const line of rl) {
+        if (line.toLowerCase() === 'exit') {
+            break;
+        }
+        await answerQuestion(collection, line);
+        rl.prompt();
+    }
 
   } finally {
     await client.close();
-  }
-}
-
-
-async function main() {
-  const args = process.argv.slice(2);
-  const command = args[0];
-
-  if (command === "ingest") {
-    const filePath = args[1];
-    if (!filePath) {
-      console.error("Please provide a file path for ingestion.");
-      return;
-    }
-    await ingestDocument(filePath);
-  } else if (command === "ask") {
-    const question = args.slice(1).join(" ");
-    if (!question) {
-      console.error("Please provide a question.");
-      return;
-    }
-    await answerQuestion(question);
-  } else {
-    console.log("Unknown command. Available commands: ingest <filePath>, ask <question>");
+    console.log("Connection closed.");
   }
 }
 
